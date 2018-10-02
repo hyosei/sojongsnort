@@ -108,7 +108,7 @@ def regular(s, followsLiteral, start):
 
             #mode modifier
             else:
-                return modemodifier(s[2:idx]) + regular(s[idx+1:], isLiteral, True)
+                return "followed by " + modemodifier(s[2:idx]) + regular(s[idx+1:], isLiteral, True)
 
         #ordinary parenthesis
         else:
