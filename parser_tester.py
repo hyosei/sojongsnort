@@ -27,12 +27,12 @@ def flags(s):
         error = True
 
     flags = s[l+1:].strip()
-    if len(flags) > 0 and not all(f in 'smigUAEROHP' for f in flags):
+    if len(flags) > 0 and not all(f in 'smigURO' for f in flags): #do AEROHIP
         # print("the string s : {}    the flag : {}".format(s,flags))
         error = True
 
     if 's' in flags:
-    	dot = True
+        dot = True
     if 'm' in flags:
         multiline = True
     if 'i' in flags:
@@ -60,9 +60,11 @@ def flags(s):
 
 # read expression
 def regular(s, followsLiteral, start):
-    # print(s)
+    global error
+    #print(s)
     reg = ""
     isLiteral = False
+
     if len(s) == 0:
         return ""
 
@@ -72,13 +74,12 @@ def regular(s, followsLiteral, start):
         found = 1
         idx = 0
         legit = True
-        # print(s)
         while (found != 0):
             idx += 1
-            if legit and (s[idx - 1] != '\\' or s[idx-2:idx] == '\\\\'): # still not getting (\\)) but there seemes no pcre as the mentioned one
-            # if legit and s[idx - 1] != '\\':
-            #     if s[idx] == '\\':
-            #         idx+=1
+            if s[idx] == '\\':
+                idx += 1
+                continue
+            if legit:
                 if s[idx] == ')':
                     found -= 1
                 if s[idx] == '(':
@@ -101,7 +102,7 @@ def regular(s, followsLiteral, start):
                 elif s[3] == '=':
                     reg = "<" + s[4:idx] + "> "
                 else:
-                	error = True
+                    error = True
             # atomic group
             elif s[2] == '>':
                 reg = "atomic group of ( " + regular(s[3:idx],isLiteral,True) + ") "
@@ -110,22 +111,23 @@ def regular(s, followsLiteral, start):
                 i = 2
                 if s[2] == ':':
                     capture = "non-capturing "
-                if s[2] == '<':
+                    reg = capture + "( " + regular(s[i + 1:idx], isLiteral, True) + ") "
+                elif s[2] == '<':
                     i = 3
-                if s[i] in '=!':
+                elif s[i] in '=!':
                     capture = ("positive" if s[i] == '=' else "negative")  + " look" + ("ahead of " if i == 2 else "behind of ")
                     reg = capture + "( " + regular(s[i + 1:idx], isLiteral, True) + ") "
                 elif i == 3:
                     n = s.find('>')
                     reg = "( " + regular(s[n + 1:idx], isLiteral, True) + ") named <" + s[3:n] + "> "
                 else:
-                	error = True
+                    error = True
 
             # mode modifier
             elif s[2] == 'i' or s[2] == '-':
                 return "followed by " + modemodifier(s[2:idx]) + regular(s[idx + 1:], isLiteral, True)
-            else: 
-            	error = True
+            else:
+                error = True
         # ordinary parenthesis
         else:
             reg = "( " + regular(s[1:idx], isLiteral, True) + ") "
@@ -364,6 +366,7 @@ def hexadecimal(s):
 
 # handle escape characters
 def escape(s):
+    global error
     if s == 'n':
         s = 'NEWLINE '
     elif s == 'r':
@@ -391,6 +394,8 @@ def escape(s):
         s = 'DOT '
     elif s == 'x':
         s = 'NUL '
+    elif s in 'qbefghknvwxzQAGHKXVB':
+        error = True
     else:
         return "\"" + s + "\" ", True
     return s, False
